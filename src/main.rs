@@ -1,8 +1,7 @@
 mod database;
 mod model;
-use database::{connect, DbAddress, create_and_connect, create_schema};
+use database::{DbAddress, create_and_connect, create_schema};
 
-use std::path::PathBuf;
 
 #[tokio::main]
 async fn main() -> Result<(), sqlx::Error>{

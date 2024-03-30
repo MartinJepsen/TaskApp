@@ -1,7 +1,6 @@
-use log::{debug, info, warn};
+use log::info;
 use sqlx::migrate::MigrateDatabase;
 use sqlx::{sqlite::SqlitePoolOptions, Pool, Sqlite};
-use std::path::{Path};
 
 use std::time::Duration;
 

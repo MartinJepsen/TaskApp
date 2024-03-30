@@ -2,7 +2,7 @@ use log::info;
 use sqlx::migrate::MigrateDatabase;
 use sqlx::{sqlite::SqlitePoolOptions, Pool, Sqlite};
 
-use std::fs::{self, File};
+use std::fs::{File};
 use std::path::Path;
 use std::time::Duration;
 
@@ -31,7 +31,7 @@ impl DbAddress {
 }
 
 /// Create a new database or connect to an existing one.
-pub async fn create_and_connect(address: DbAddress) -> Result<Database, sqlx::Error> {
+pub async fn create_and_connect(address: DbAddress) -> Result<Database, crate::Error> {
     
     let address_str = address.to_sqlite_string().await;
     match &address {
@@ -59,19 +59,20 @@ pub async fn create_and_connect(address: DbAddress) -> Result<Database, sqlx::Er
 }
 
 /// Connect to the database.
-pub async fn connect(address: DbAddress) -> Result<Database, sqlx::Error> {
+pub async fn connect(address: DbAddress) -> Result<Database, crate::Error> {
     let conn_str = address.to_sqlite_string().await;
     info!("Connecting to {}", conn_str);
-    SqlitePoolOptions::new()
+    let options = SqlitePoolOptions::new()
         .max_connections(1)
         .idle_timeout(Duration::from_secs(300))
         .acquire_timeout(Duration::from_secs(5))
         .connect(&conn_str)
-        .await
+        .await?;
+    Ok(options)
 }
 
 /// Create the database schema
-pub async fn create_schema(db: &Database) -> Result<(), sqlx::Error> {
+pub async fn create_schema(db: &Database) -> Result<(), crate::Error> {
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS tasks (
@@ -94,13 +95,13 @@ mod tests {
     use sqlx::Row;
 
     #[tokio::test]
-    async fn connect_to_path() -> Result<(), sqlx::Error> {
+    async fn connect_to_path() -> Result<(), crate::Error> {
         let _ = connect(DbAddress::Path("test.sqlite".into())).await?;
         Ok(())
     }
 
     #[tokio::test]
-    async fn connect_to_memory() -> Result<(), sqlx::Error> {
+    async fn connect_to_memory() -> Result<(), crate::Error> {
         let _ = connect(DbAddress::Memory).await?;
         Ok(())
     }
@@ -111,7 +112,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_schema() -> Result<(), sqlx::Error>{
+    async fn test_schema() -> Result<(), crate::Error>{
         // # Fixture
         let db = create_and_connect(DbAddress::Memory).await?;
         let _ = create_schema(&db).await;

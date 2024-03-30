@@ -22,7 +22,7 @@ pub struct TaskMac;
 
 impl TaskMac {
     /// Insert a new task into the database.
-    pub async fn insert(db: &Database, data: TaskPatch) -> Result<Task, sqlx::Error> {
+    pub async fn insert(db: &Database, data: TaskPatch) -> Result<Task, crate::Error> {
         let query = "INSERT INTO tasks (name, creation_time) VALUES (?, strftime('%s', ?)) RETURNING id, name, creation_time";
         let response = sqlx::query_as::<_, Task>(query)
             .bind(&data.name)
@@ -33,7 +33,7 @@ impl TaskMac {
     }
 
     /// Get a task from the database by id.
-    pub async fn get(db: &Database, id: i64) -> Result<Task, sqlx::Error> {
+    pub async fn get(db: &Database, id: i64) -> Result<Task, crate::Error> {
         let query = "SELECT id, name, creation_time FROM tasks WHERE id = ?";
         let response = sqlx::query_as::<_, Task>(query)
             .bind(id);
@@ -42,7 +42,7 @@ impl TaskMac {
     }
 
     /// Update a task in the database.
-    pub async fn update(db: &Database, id: i64, data: TaskPatch) -> Result<Task, sqlx::Error> {
+    pub async fn update(db: &Database, id: i64, data: TaskPatch) -> Result<Task, crate::Error> {
         let query = "UPDATE tasks SET name = ? WHERE id = ? RETURNING id, name";
         let response = sqlx::query_as::<_, Task>(query)
             .bind(data.name)
@@ -52,14 +52,14 @@ impl TaskMac {
     }
 
     /// Delete a task from the database.
-    pub async fn delete(db: &Database, id: i64) -> Result<(), sqlx::Error> {
+    pub async fn delete(db: &Database, id: i64) -> Result<(), crate::Error> {
         let query = "DELETE FROM tasks WHERE id = ?";
         sqlx::query(query).bind(id).execute(db).await?;
         Ok(())
     }
 
     /// List all tasks from the database.	
-    pub async fn list(db: &Database) -> Result<Vec<Task>, sqlx::Error> {
+    pub async fn list(db: &Database) -> Result<Vec<Task>, crate::Error> {
         let query = "SELECT id, name, creation_time FROM tasks";
         let response = sqlx::query_as::<_, Task>(query);
         let tasks = response.fetch_all(db).await?;
@@ -74,7 +74,7 @@ mod test {
     use crate::database::{DbAddress, create_and_connect, create_schema};
     
     #[tokio::test]
-    async fn test_insert() -> Result<(), sqlx::Error> {
+    async fn test_insert() -> Result<(), crate::Error> {
         let db = create_and_connect(DbAddress::Memory).await?;
         create_schema(&db).await?;
 
@@ -89,7 +89,7 @@ mod test {
 
 
     #[tokio::test]
-    async fn test_get() -> Result<(), sqlx::Error> {
+    async fn test_get() -> Result<(), crate::Error> {
         // # Fixture
         let db = create_and_connect(DbAddress::Memory).await?;
         create_schema(&db).await?;
@@ -105,7 +105,7 @@ mod test {
     }
 
     #[tokio::test]
-    async fn test_list() -> Result<(), sqlx::Error> {
+    async fn test_list() -> Result<(), crate::Error> {
         let db = create_and_connect(DbAddress::Memory).await?;
         create_schema(&db).await?;
 

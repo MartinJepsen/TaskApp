@@ -1,19 +1,33 @@
+use log::warn;
+use serde::Serialize;
 use sqlx::{FromRow, types::chrono::{NaiveDateTime, DateTime, Utc}};
 use crate::database::{Database};
 
 
 /// Task model.
-#[derive(Debug, Default, FromRow, Clone, PartialEq)]
+#[derive(Debug, Default, FromRow, Clone, PartialEq, Serialize)]
 pub struct Task {
     pub id: i64,
     pub name: String,
-    pub creation_time: NaiveDateTime
+    pub status: TaskStatus,
+    pub creation_time: DateTime<Utc>,
+}
+
+
+#[derive(Debug, Default, PartialEq, Clone, Serialize, sqlx::Type)]
+#[sqlx(type_name = "task_status_enum")]
+#[sqlx(rename_all = "lowercase")]
+pub enum TaskStatus{
+    #[default]
+    Open,
+    Closed,
 }
 
 /// Patch type for creating or updating a task.
 #[derive(Debug, Default, Clone)]
 pub struct TaskPatch {
-    pub name: String,
+    pub name: Option<String>,
+    pub status: Option<TaskStatus>,
 }
 
 
@@ -23,9 +37,14 @@ pub struct TaskMac;
 impl TaskMac {
     /// Insert a new task into the database.
     pub async fn insert(db: &Database, data: TaskPatch) -> Result<Task, crate::Error> {
-        let query = "INSERT INTO tasks (name, creation_time) VALUES (?, strftime('%s', ?)) RETURNING id, name, creation_time";
+        let query = "INSERT INTO tasks (name, status, creation_time) VALUES (?, ?, strftime('%s', ?)) RETURNING id, name, status, creation_time";
+        
+        // let task_name = &data.name.unwrap_or_else(||{ warn!("Got empty task name. Defaulting to \"untitled\"."); "untitled".to_string()});
+        let task_status = &data.status.unwrap_or(TaskStatus::Open);
+
         let response = sqlx::query_as::<_, Task>(query)
             .bind(&data.name)
+            .bind(&task_status)
             .bind(Utc::now().naive_utc());
             
         let task = response.fetch_one(db).await?;
@@ -34,7 +53,7 @@ impl TaskMac {
 
     /// Get a task from the database by id.
     pub async fn get(db: &Database, id: i64) -> Result<Task, crate::Error> {
-        let query = "SELECT id, name, creation_time FROM tasks WHERE id = ?";
+        let query = "SELECT id, name, status, creation_time FROM tasks WHERE id = ?";
         let response = sqlx::query_as::<_, Task>(query)
             .bind(id);
         let task = response.fetch_one(db).await?;
@@ -60,7 +79,7 @@ impl TaskMac {
 
     /// List all tasks from the database.	
     pub async fn list(db: &Database) -> Result<Vec<Task>, crate::Error> {
-        let query = "SELECT id, name, creation_time FROM tasks";
+        let query = "SELECT id, name, status, creation_time FROM tasks";
         let response = sqlx::query_as::<_, Task>(query);
         let tasks = response.fetch_all(db).await?;
         Ok(tasks)
@@ -72,13 +91,14 @@ impl TaskMac {
 mod test {
     use super::*;
     use crate::database::{DbAddress, create_and_connect, create_schema};
+    use crate::model::task::TaskStatus;
     
     #[tokio::test]
     async fn test_insert() -> Result<(), crate::Error> {
         let db = create_and_connect(DbAddress::Memory).await?;
         create_schema(&db).await?;
 
-        let task_fixture = TaskPatch { name: "Hello world".to_string() };
+        let task_fixture = TaskPatch { name: Some("Hello world".to_string()) , status: None};
 
         let task = TaskMac::insert(&db, task_fixture).await?;
         println!("{:?}", task);
@@ -93,7 +113,7 @@ mod test {
         // # Fixture
         let db = create_and_connect(DbAddress::Memory).await?;
         create_schema(&db).await?;
-        let task_fixture = TaskPatch { name: "Hello world".to_string() };
+        let task_fixture = TaskPatch { name: Some("Hello world".to_string()), status: Some(TaskStatus::Open) };
 
         // # Action
         let inserted_task = TaskMac::insert(&db, task_fixture).await?;
@@ -109,7 +129,10 @@ mod test {
         let db = create_and_connect(DbAddress::Memory).await?;
         create_schema(&db).await?;
 
-        let task_fixture = vec![TaskPatch { name: "One".to_string() }, TaskPatch { name: "Two".to_string() }];
+        let task_fixture = vec![
+            TaskPatch { name: Some("One".to_string()), status: Some(TaskStatus::Open)},
+            TaskPatch { name: Some("Two".to_string()), status: Some(TaskStatus::Closed) }
+        ];
         let mut inserted_tasks: Vec<Task> = Vec::new();
         for task in task_fixture {
             inserted_tasks.push(TaskMac::insert(&db, task).await?);

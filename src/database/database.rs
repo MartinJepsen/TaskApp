@@ -55,7 +55,9 @@ pub async fn create_and_connect(address: DbAddress) -> Result<Database, crate::E
         DbAddress::Memory => ()
     };
 
-    connect(address).await
+    let pool = connect(address).await?;
+    create_schema(&pool).await?;
+    Ok(pool)
 }
 
 /// Connect to the database.
@@ -78,6 +80,7 @@ pub async fn create_schema(db: &Database) -> Result<(), crate::Error> {
         CREATE TABLE IF NOT EXISTS tasks (
             id INTEGER NOT NULL PRIMARY KEY ,
             name TEXT NOT NULL,
+            status VARCHAR(5) NOT NULL DEFAULT 'open',
             creation_time INTEGER NOT NULL
         );
         "#,
@@ -137,6 +140,7 @@ mod tests {
             vec![
                 ("id".to_string(), "INTEGER".to_string(), true, true),
                 ("name".to_string(), "TEXT".to_string(), true, false),
+                ("status".to_string(), "VARCHAR(5)".to_string(), true, false),
                 ("creation_time".to_string(), "INTEGER".to_string(), true, false),
             ]
         );

@@ -35,14 +35,33 @@ pub struct TaskPatch {
 pub struct TaskMac;
 
 impl TaskMac {
+    const TABLE_NAME: &'static str = "tasks";
+    const COLUMNS: &'static [&'static str] = &["id", "name", "status", "creation_time"];
+    const INSERT_SQL: &'static str = r#"INSERT INTO tasks (
+        name, status, creation_time
+    ) VALUES (
+        ?,
+        ?,
+        strftime('%s', ?)
+    ) RETURNING id, name, status, creation_time"#;
+    const GET_SQL: &'static str = r"SELECT id, name, status, creation_time FROM tasks WHERE id = ?";
+
+    const UPDATE_SQL: &'static str = "UPDATE tasks SET name = ? WHERE id = ? RETURNING id, name, status, creation_time";
+    const DELETE_SQL: &'static str = "DELETE FROM tasks WHERE id = ?";
+    const LIST_SQL: &'static str = "SELECT id, name, status, creation_time FROM tasks";
+
     /// Insert a new task into the database.
     pub async fn insert(db: &Database, data: TaskPatch) -> Result<Task, crate::Error> {
-        let query = "INSERT INTO tasks (name, status, creation_time) VALUES (?, ?, strftime('%s', ?)) RETURNING id, name, status, creation_time";
+        // let query = format!(
+        //     "INSERT INTO {0} (name, status, creation_time) VALUES (?, ?, strftime('%s', ?)) RETURNING {1}",
+        //     Self::TABLE_NAME,
+        //     Self::COLUMNS.join(", ")
+        // );
         
         // let task_name = &data.name.unwrap_or_else(||{ warn!("Got empty task name. Defaulting to \"untitled\"."); "untitled".to_string()});
         let task_status = &data.status.unwrap_or(TaskStatus::Open);
 
-        let response = sqlx::query_as::<_, Task>(query)
+        let response = sqlx::query_as::<_, Task>(Self::INSERT_SQL)
             .bind(&data.name)
             .bind(&task_status)
             .bind(Utc::now().naive_utc());
@@ -53,8 +72,7 @@ impl TaskMac {
 
     /// Get a task from the database by id.
     pub async fn get(db: &Database, id: i64) -> Result<Task, crate::Error> {
-        let query = "SELECT id, name, status, creation_time FROM tasks WHERE id = ?";
-        let response = sqlx::query_as::<_, Task>(query)
+        let response = sqlx::query_as::<_, Task>(Self::GET_SQL)
             .bind(id);
         let task = response.fetch_one(db).await?;
         Ok(task)
@@ -62,8 +80,7 @@ impl TaskMac {
 
     /// Update a task in the database.
     pub async fn update(db: &Database, id: i64, data: TaskPatch) -> Result<Task, crate::Error> {
-        let query = "UPDATE tasks SET name = ? WHERE id = ? RETURNING id, name";
-        let response = sqlx::query_as::<_, Task>(query)
+        let response = sqlx::query_as::<_, Task>(Self::GET_SQL)
             .bind(data.name)
             .bind(id);
         let task = response.fetch_one(db).await?;
@@ -72,15 +89,13 @@ impl TaskMac {
 
     /// Delete a task from the database.
     pub async fn delete(db: &Database, id: i64) -> Result<(), crate::Error> {
-        let query = "DELETE FROM tasks WHERE id = ?";
-        sqlx::query(query).bind(id).execute(db).await?;
+        sqlx::query(Self::DELETE_SQL).bind(id).execute(db).await?;
         Ok(())
     }
 
     /// List all tasks from the database.	
     pub async fn list(db: &Database) -> Result<Vec<Task>, crate::Error> {
-        let query = "SELECT id, name, status, creation_time FROM tasks";
-        let response = sqlx::query_as::<_, Task>(query);
+        let response = sqlx::query_as::<_, Task>(Self::LIST_SQL);
         let tasks = response.fetch_all(db).await?;
         Ok(tasks)
     }

@@ -2,6 +2,8 @@ use log::info;
 use sqlx::migrate::MigrateDatabase;
 use sqlx::{sqlite::SqlitePoolOptions, Pool, Sqlite};
 
+use std::fs::{self, File};
+use std::path::Path;
 use std::time::Duration;
 
 pub type Database = Pool<Sqlite>;
@@ -17,6 +19,7 @@ pub enum DbAddress {
 
 impl DbAddress {
 
+    /// Convert the address to a string.
     pub async fn to_sqlite_string(&self) -> String {
         match self {
             DbAddress::Path(path) => {
@@ -35,6 +38,10 @@ pub async fn create_and_connect(address: DbAddress) -> Result<Database, sqlx::Er
         DbAddress::Path(path) => {
             if !Sqlite::database_exists(&path).await.unwrap_or(false) {
                 info!("Creating database at {}", &address_str);
+                match Path::new(&path).exists() {
+                    false => {File::create(&path).expect("Failed to create file database.");},
+                    true => info!("Database file already exists at {}. Connecting.", &address_str),
+                };
                 match Sqlite::create_database(&address_str).await {
                     Ok(_) => info!("Database created at {}", &address_str),
                     Err(e) => {
@@ -63,13 +70,15 @@ pub async fn connect(address: DbAddress) -> Result<Database, sqlx::Error> {
         .await
 }
 
+/// Create the database schema
 pub async fn create_schema(db: &Database) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS tasks (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL
-        )
+            id INTEGER NOT NULL PRIMARY KEY ,
+            name TEXT NOT NULL,
+            creation_time INTEGER NOT NULL
+        );
         "#,
     )
     .execute(db)
@@ -81,11 +90,12 @@ pub async fn create_schema(db: &Database) -> Result<(), sqlx::Error> {
 
 #[cfg(test)]
 mod tests {
-    use super::{connect, DbAddress, create_and_connect};
+    use super::{connect, DbAddress, create_and_connect, create_schema};
+    use sqlx::Row;
 
     #[tokio::test]
     async fn connect_to_path() -> Result<(), sqlx::Error> {
-        let _ = connect(DbAddress::Path("db.sqlite".into())).await?;
+        let _ = connect(DbAddress::Path("test.sqlite".into())).await?;
         Ok(())
     }
 
@@ -97,6 +107,38 @@ mod tests {
 
     #[tokio::test]
     async fn new_db_from_path() {
-        let _ = create_and_connect(DbAddress::Path("db.sqlite".into())).await;
+        let _ = create_and_connect(DbAddress::Path("test.sqlite".into())).await;
+    }
+
+    #[tokio::test]
+    async fn test_schema() -> Result<(), sqlx::Error>{
+        // # Fixture
+        let db = create_and_connect(DbAddress::Memory).await?;
+        let _ = create_schema(&db).await;
+
+        // # Get schema
+        let rows = sqlx::query("PRAGMA table_info(tasks)")
+            .fetch_all(&db)
+            .await?;
+
+        let mut schema: Vec<(String, String, bool, bool)> = Vec::new();
+        for row in rows {
+            let colname = row.try_get::<String, _>("name").unwrap();
+            let dtype = row.try_get::<String, _>("type").unwrap();
+            let notnull = row.try_get::<bool, _>("notnull").unwrap();
+            let pk = row.try_get::<bool, _>("pk").unwrap();
+            schema.push((colname, dtype, notnull, pk))
+        };
+
+        // Check schema
+        assert_eq!(
+            schema,
+            vec![
+                ("id".to_string(), "INTEGER".to_string(), true, true),
+                ("name".to_string(), "TEXT".to_string(), true, false),
+                ("creation_time".to_string(), "INTEGER".to_string(), true, false),
+            ]
+        );
+        Ok(())
     }
 }

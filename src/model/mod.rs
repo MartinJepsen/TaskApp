@@ -1,3 +1,3 @@
 mod task;
 
-pub use task::{TaskMac, TaskPatch, TaskStatus};
+pub use task::{TaskMac, TaskPatch};

@@ -1,7 +1,7 @@
 mod database;
 mod model;
 mod web;
-use database::{create_and_connect, create_schema, DbAddress};
+use database::{create_and_connect, DbAddress};
 use std::sync::Arc;
 use web::serve;
 

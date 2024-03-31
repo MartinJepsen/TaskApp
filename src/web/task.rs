@@ -99,7 +99,7 @@ pub fn with_db(
 #[cfg(test)]
 mod test {
     use crate::database::{create_and_connect, DbAddress};
-    use crate::model::{TaskPatch, TaskStatus, TaskMac};
+    use crate::model::{TaskMac, TaskPatch, TaskStatus};
     use std::io::Result;
 
     use super::*;
@@ -125,13 +125,18 @@ mod test {
     async fn test_task_get() -> Result<()> {
         // # Setup
         let database = Arc::new(create_and_connect(DbAddress::Memory).await.unwrap());
-        TaskMac::insert(&database, TaskPatch {
-            name: Some("Hello world".to_string()),
-            status: Some(TaskStatus::Open),
-        }).await.unwrap();
+        TaskMac::insert(
+            &database,
+            TaskPatch {
+                name: Some("Hello world".to_string()),
+                status: Some(TaskStatus::Open),
+            },
+        )
+        .await
+        .unwrap();
 
-
-        let filters = task_rest_filters("api", database.clone()).recover(super::super::handle_rejection);
+        let filters =
+            task_rest_filters("api", database.clone()).recover(super::super::handle_rejection);
 
         let response = warp::test::request()
             .method("GET")

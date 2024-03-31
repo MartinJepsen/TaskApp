@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "target": "ES2021",
+        "module": "ESNext",
+        "moduleResolution": "node",
+
+        "allowJs": false,
+        "checkJs": false,
+        "strict": true,
+
+        "declaration": true,
+        // "sourcemap": false,
+
+        "useDefineForClassFields": true,
+        "experimentalDecorators": true,
+
+        // "esModuleInterop": true,
+        // "skipLibCheck": true,
+        // "forceConsistentCasingInFileNames": true},
+    },
+    "include": ["./src/**/*.ts"],
+    "exclude": ["node_modules"]
+}

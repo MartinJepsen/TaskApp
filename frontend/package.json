@@ -3,6 +3,9 @@
     "type": "module",
     "version": "0.1.0",
     "description": "Task app frontend",
+    "scripts": {
+        "build": "rollup -c"
+    },
     "dependencies": {
         "dom-native": "^0.10.1"
     },

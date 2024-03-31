@@ -134,14 +134,13 @@ impl TaskMac {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::database::{create_and_connect, create_schema, DbAddress};
+    use crate::database::{create_and_connect, DbAddress};
     use crate::model::task::TaskStatus;
 
     /// Test insertion of a new task
     #[tokio::test]
     async fn test_insert() -> Result<(), crate::Error> {
         let db = create_and_connect(DbAddress::Memory).await?;
-        create_schema(&db).await?;
 
         let task_fixture = TaskPatch {
             name: Some("Hello world".to_string()),
@@ -160,7 +159,6 @@ mod test {
     async fn test_get() -> Result<(), crate::Error> {
         // # Setup
         let db = create_and_connect(DbAddress::Memory).await?;
-        create_schema(&db).await?;
 
         // # Fixture
         let task_fixture = TaskPatch {
@@ -182,7 +180,6 @@ mod test {
     async fn test_update_name() -> Result<(), crate::Error> {
         // # Setup
         let db = create_and_connect(DbAddress::Memory).await?;
-        create_schema(&db).await?;
 
         // # Fixture
         let task_fixture = TaskPatch {
@@ -214,7 +211,6 @@ mod test {
     async fn test_update_none() -> Result<(), crate::Error> {
         // # Setup
         let db = create_and_connect(DbAddress::Memory).await?;
-        create_schema(&db).await?;
 
         // # Fixture
         let task_fixture = TaskPatch {
@@ -244,7 +240,6 @@ mod test {
     async fn test_update_status() -> Result<(), crate::Error> {
         // # Setup
         let db = create_and_connect(DbAddress::Memory).await?;
-        create_schema(&db).await?;
 
         // # Fixture
         let task_fixture = TaskPatch {
@@ -276,7 +271,6 @@ mod test {
     async fn test_list() -> Result<(), crate::Error> {
         // # Setup
         let db = create_and_connect(DbAddress::Memory).await?;
-        create_schema(&db).await?;
 
         // # Fixture
         let task_fixture = vec![

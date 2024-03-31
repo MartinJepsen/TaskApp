@@ -13,6 +13,7 @@ pub enum DbAddress {
     /// Address is a path.
     Path(String),
     /// Address is in-memory.
+    #[allow(dead_code)]
     Memory,
 }
 
@@ -76,7 +77,7 @@ pub async fn connect(address: DbAddress) -> Result<Database, crate::Error> {
 }
 
 /// Create the database schema
-pub async fn create_schema(db: &Database) -> Result<(), crate::Error> {
+async fn create_schema(db: &Database) -> Result<(), crate::Error> {
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS tasks (

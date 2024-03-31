@@ -1,5 +1,5 @@
 use crate::database::Database;
-use crate::model::{TaskMac, TaskPatch};
+use crate::model::task::{TaskMac, TaskPatch};
 
 use super::json_response;
 use serde_json::json;
@@ -99,7 +99,7 @@ pub fn with_db(
 #[cfg(test)]
 mod test {
     use crate::database::{create_and_connect, DbAddress};
-    use crate::model::{TaskMac, TaskPatch, TaskStatus};
+    use crate::model::task::{TaskMac, TaskPatch, TaskStatus};
     use std::io::Result;
 
     use super::*;

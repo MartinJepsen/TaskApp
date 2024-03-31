@@ -1,3 +1,1 @@
-mod task;
-
-pub use task::{TaskMac, TaskPatch};
+pub(crate) mod task;

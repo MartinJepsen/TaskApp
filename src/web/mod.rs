@@ -2,12 +2,13 @@ use crate::database::Database;
 use crate::Error;
 use log::{error, info};
 use serde::Serialize;
-use serde_json::{json, Value};
+// use serde_json::{json, Value};
+use serde_json::json;
 use std::convert::Infallible;
 use std::path::Path;
-use std::str::from_utf8;
+// use std::str::from_utf8;
 use std::sync::Arc;
-use warp::hyper::{body::Bytes, Response};
+// use warp::hyper::{body::Bytes, Response};
 use warp::reply::Json;
 use warp::Filter;
 
@@ -43,19 +44,19 @@ pub async fn serve(root_dir: &str, port: u16, database: Arc<Database>) -> Result
     Ok(())
 }
 
-fn extract_body_data<D>(response: Response<Bytes>) -> std::io::Result<D>
-where
-    for<'de> D: serde::de::Deserialize<'de>,
-    D: serde::de::DeserializeOwned,
-{
-    let body = from_utf8(response.body()).expect("Could not parse response body as UTF8.");
-    let mut body: Value =
-        serde_json::from_str(body).expect(&format!("Cannot parse JSON response body: {}", body));
-    let data = body["data"].take();
-    let data: D = serde_json::from_value(data)?;
+// fn extract_body_data<D>(response: Response<Bytes>) -> std::io::Result<D>
+// where
+//     for<'de> D: serde::de::Deserialize<'de>,
+//     D: serde::de::DeserializeOwned,
+// {
+//     let body = from_utf8(response.body()).expect("Could not parse response body as UTF8.");
+//     let mut body: Value =
+//         serde_json::from_str(body).expect(&format!("Cannot parse JSON response body: {}", body));
+//     let data = body["data"].take();
+//     let data: D = serde_json::from_value(data)?;
 
-    Ok(data)
-}
+//     Ok(data)
+// }
 
 // # Error handling
 
@@ -63,6 +64,7 @@ where
 #[derive(Debug)]
 pub struct WebError {
     typ: &'static str,
+    #[allow(dead_code)]
     message: String,
 }
 

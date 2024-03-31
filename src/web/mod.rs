@@ -1,11 +1,14 @@
 use crate::database::Database;
 use crate::Error;
-use log::info;
-use serde_json::Value;
+use log::{error, info};
+use serde::Serialize;
+use serde_json::{json, Value};
+use std::convert::Infallible;
 use std::path::Path;
 use std::str::from_utf8;
 use std::sync::Arc;
 use warp::hyper::{body::Bytes, Response};
+use warp::reply::Json;
 use warp::Filter;
 
 // use std::io::Result;
@@ -26,7 +29,10 @@ pub async fn serve(root_dir: &str, port: u16, database: Arc<Database>) -> Result
         .and(warp::fs::file(format!("{}/index.html", root_dir)));
     let static_site = content.or(index);
 
-    let routes = static_site;
+    let api = task::task_rest_filters("api", database);
+
+    // Combine routes
+    let routes = api.or(static_site).recover(handle_rejection);
 
     info!(
         "Starting server http://127.0.0.1:{} from {}",
@@ -51,6 +57,8 @@ where
     Ok(data)
 }
 
+// # Error handling
+
 /// A custom error for Warp-related stuff.
 #[derive(Debug)]
 pub struct WebError {
@@ -73,4 +81,36 @@ impl From<crate::Error> for WebError {
             message: e.to_string(),
         }
     }
+}
+
+impl From<crate::Error> for warp::Rejection {
+    fn from(other: crate::Error) -> Self {
+        WebError::rejection("crate::error", format!("{}", other))
+    }
+}
+
+async fn handle_rejection(err: warp::Rejection) -> Result<impl warp::Reply, Infallible> {
+    error!("Error: {:?}", err);
+
+    // TODO: logging API?
+
+    let message = match err.find::<WebError>() {
+        Some(err) => err.typ.to_string(),
+        None => "Unknown error".to_string(),
+    };
+
+    let result = json!({"errorMessage": message});
+    let result = warp::reply::json(&result);
+
+    Ok(warp::reply::with_status(
+        result,
+        warp::http::StatusCode::BAD_REQUEST,
+    ))
+}
+
+// # API Response helpers
+
+fn json_response<D: Serialize>(data: D) -> Result<Json, warp::Rejection> {
+    let response = json!({ "data": data});
+    Ok(warp::reply::json(&response))
 }

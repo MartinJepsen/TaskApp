@@ -1,8 +1,8 @@
 use crate::database::Database;
 use log::warn;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::{
-    types::chrono::{DateTime, NaiveDateTime, Utc},
+    types::chrono::{DateTime, Utc},
     FromRow,
 };
 
@@ -15,7 +15,7 @@ pub struct Task {
     pub creation_time: DateTime<Utc>,
 }
 
-#[derive(Debug, Default, PartialEq, Clone, Serialize, sqlx::Type)]
+#[derive(Debug, Default, PartialEq, Clone, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "task_status_enum")]
 #[sqlx(rename_all = "lowercase")]
 pub enum TaskStatus {
@@ -25,7 +25,7 @@ pub enum TaskStatus {
 }
 
 /// Patch type for creating or updating a task.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Deserialize)]
 pub struct TaskPatch {
     pub name: Option<String>,
     pub status: Option<TaskStatus>,
@@ -45,9 +45,6 @@ impl TaskMac {
         strftime('%s', ?)
     ) RETURNING id, name, status, creation_time"#;
     const GET_SQL: &'static str = r"SELECT id, name, status, creation_time FROM tasks WHERE id = ?";
-
-    const UPDATE_SQL: &'static str =
-        "UPDATE tasks SET name = ? WHERE id = ? RETURNING id, name, status, creation_time";
     const DELETE_SQL: &'static str = "DELETE FROM tasks WHERE id = ?";
     const LIST_SQL: &'static str = "SELECT id, name, status, creation_time FROM tasks";
 

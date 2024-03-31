@@ -96,12 +96,12 @@ async fn handle_rejection(err: warp::Rejection) -> Result<impl warp::Reply, Infa
 
     // TODO: logging API?
 
-    let message = match err.find::<WebError>() {
-        Some(err) => err.typ.to_string(),
-        None => "Unknown error".to_string(),
+    let web_err = match err.find::<WebError>() {
+        Some(err) => err.clone(),
+        None => WebError { typ: "unknown", message: "unknown error".to_string()}
     };
 
-    let result = json!({"errorMessage": message});
+    let result = json!({"error": {"type": web_err.typ}});
     let result = warp::reply::json(&result);
 
     Ok(warp::reply::with_status(

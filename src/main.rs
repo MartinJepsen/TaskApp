@@ -14,7 +14,7 @@ pub enum Error {
 }
 
 const PORT: u16 = 8080;
-const ROOT_DIR: &'static str = "frontend/dist";
+const ROOT_DIR: &str = "frontend/dist";
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {

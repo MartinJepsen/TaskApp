@@ -61,7 +61,7 @@ impl TaskMac {
 
         let response = sqlx::query_as::<_, Task>(Self::INSERT_SQL)
             .bind(&data.name)
-            .bind(&task_status)
+            .bind(task_status)
             .bind(Utc::now().naive_utc());
 
         let task = response.fetch_one(db).await?;

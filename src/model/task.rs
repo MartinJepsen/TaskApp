@@ -80,9 +80,39 @@ impl TaskMac {
 
     /// Update a task in the database.
     pub async fn update(db: &Database, id: i64, data: TaskPatch) -> Result<Task, crate::Error> {
-        let response = sqlx::query_as::<_, Task>(Self::GET_SQL)
-            .bind(data.name)
-            .bind(id);
+        let mut query = format!("UPDATE {0} SET ", Self::TABLE_NAME);
+        let mut set_statements = Vec::new();
+
+        // Get fields to update
+        if data.name.is_some() {
+            set_statements.push("name = ?");
+        }
+        if data.status.is_some() {
+            set_statements.push("status = ?");
+        }
+
+        // Early return if nothing to update
+        if set_statements.is_empty() {
+            warn!("No fields to update for task with id {}", id);
+            return TaskMac::get(db, id).await;
+        }
+
+        // Add SET clause
+        query.push_str(&set_statements.join(", "));
+        // Add WHERE clause
+        query.push_str(&format!(" WHERE id = ? RETURNING {0}", Self::COLUMNS.join(", ")));
+
+        let mut response = sqlx::query_as::<_, Task>(&query);
+
+        // Add bindings
+        if let Some(task_name) = &data.name {
+            response = response.bind(task_name);
+        }
+        if let Some(task_status) = &data.status {
+            response = response.bind(task_status);
+        }
+        response = response.bind(id);
+        
         let task = response.fetch_one(db).await?;
         Ok(task)
     }
@@ -108,6 +138,7 @@ mod test {
     use crate::database::{DbAddress, create_and_connect, create_schema};
     use crate::model::task::TaskStatus;
     
+    /// Test insertion of a new task
     #[tokio::test]
     async fn test_insert() -> Result<(), crate::Error> {
         let db = create_and_connect(DbAddress::Memory).await?;
@@ -123,11 +154,14 @@ mod test {
     }
 
 
+    /// Test retreival of a task by id
     #[tokio::test]
     async fn test_get() -> Result<(), crate::Error> {
-        // # Fixture
+        // # Setup
         let db = create_and_connect(DbAddress::Memory).await?;
         create_schema(&db).await?;
+        
+        // # Fixture
         let task_fixture = TaskPatch { name: Some("Hello world".to_string()), status: Some(TaskStatus::Open) };
 
         // # Action
@@ -139,20 +173,87 @@ mod test {
         Ok(())
     }
 
+    /// Test update of a task name by id.
     #[tokio::test]
-    async fn test_list() -> Result<(), crate::Error> {
+    async fn test_update_name() -> Result<(), crate::Error> {
+        // # Setup
         let db = create_and_connect(DbAddress::Memory).await?;
         create_schema(&db).await?;
 
+        // # Fixture
+        let task_fixture = TaskPatch { name: Some("Hello world".to_string()), status: Some(TaskStatus::Open) };
+        let inserted_task = TaskMac::insert(&db, task_fixture).await?;
+
+        // # Action
+        let updated_task = TaskMac::update(&db, inserted_task.id, TaskPatch { name: Some("Updated".to_string()), status: None }).await?;
+        
+        // # Check
+        assert_eq!(updated_task.name, "Updated");
+        assert_eq!(inserted_task.id, updated_task.id);
+        assert_eq!(inserted_task.status, updated_task.status);
+        Ok(())
+    }
+
+    /// Test update of a task where nothing has changed. Should return the same task.
+    #[tokio::test]
+    async fn test_update_none() -> Result<(), crate::Error> {
+        // # Setup
+        let db = create_and_connect(DbAddress::Memory).await?;
+        create_schema(&db).await?;
+
+        // # Fixture
+        let task_fixture = TaskPatch { name: Some("Hello world".to_string()), status: Some(TaskStatus::Open) };
+        let inserted_task = TaskMac::insert(&db, task_fixture).await?;
+
+        // # Action
+        let updated_task = TaskMac::update(&db, inserted_task.id, TaskPatch { name: None, status: None }).await?;
+        
+        // # Check
+        assert_eq!(updated_task, inserted_task);
+        Ok(())
+    }
+
+    /// Test update of a task status.
+    #[tokio::test]
+    async fn test_update_status() -> Result<(), crate::Error> {
+        // # Setup
+        let db = create_and_connect(DbAddress::Memory).await?;
+        create_schema(&db).await?;
+
+        // # Fixture
+        let task_fixture = TaskPatch { name: Some("Hello world".to_string()), status: Some(TaskStatus::Open) };
+        let inserted_task = TaskMac::insert(&db, task_fixture).await?;
+
+        // # Action
+        let updated_task = TaskMac::update(&db, inserted_task.id, TaskPatch { name: None, status: Some(TaskStatus::Closed) }).await?;
+        
+        // # Check
+        assert_eq!(updated_task.name, "Hello world");
+        assert_eq!(inserted_task.id, updated_task.id);
+        assert_eq!(TaskStatus::Closed, updated_task.status);
+        Ok(())
+    }
+
+    /// Test listing all tasks.
+    #[tokio::test]
+    async fn test_list() -> Result<(), crate::Error> {
+        // # Setup
+        let db = create_and_connect(DbAddress::Memory).await?;
+        create_schema(&db).await?;
+
+        // # Fixture
         let task_fixture = vec![
             TaskPatch { name: Some("One".to_string()), status: Some(TaskStatus::Open)},
             TaskPatch { name: Some("Two".to_string()), status: Some(TaskStatus::Closed) }
         ];
+
+        // # Action
         let mut inserted_tasks: Vec<Task> = Vec::new();
         for task in task_fixture {
             inserted_tasks.push(TaskMac::insert(&db, task).await?);
         }
 
+        // # Check
         let tasks = TaskMac::list(&db).await?;
         assert_eq!(tasks, inserted_tasks);
         Ok(())

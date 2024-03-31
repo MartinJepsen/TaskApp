@@ -1,23 +1,24 @@
 use crate::database::Database;
+use crate::Error;
+use log::info;
+use serde_json::Value;
 use std::path::Path;
 use std::str::from_utf8;
 use std::sync::Arc;
-use log::info;
-use serde_json::Value;
-use warp::hyper::{Response, body::Bytes};
+use warp::hyper::{body::Bytes, Response};
 use warp::Filter;
-use crate::Error;
 
 // use std::io::Result;
 
 mod task;
 
-
 pub async fn serve(root_dir: &str, port: u16, database: Arc<Database>) -> Result<(), Error> {
     if !Path::new(root_dir).exists() {
-        return Err(Error::RootNotFound("Root directory does not exist.".to_owned()));
+        return Err(Error::RootNotFound(
+            "Root directory does not exist.".to_owned(),
+        ));
     }
-    
+
     // Static site
     let content = warp::fs::dir(root_dir.to_string());
     let index = warp::get()
@@ -27,17 +28,18 @@ pub async fn serve(root_dir: &str, port: u16, database: Arc<Database>) -> Result
 
     let routes = static_site;
 
-    info!("Starting server http://127.0.0.1:{} from {}", port, root_dir);
+    info!(
+        "Starting server http://127.0.0.1:{} from {}",
+        port, root_dir
+    );
     warp::serve(routes).run(([127, 0, 0, 1], port)).await;
-
 
     Ok(())
 }
 
-
 fn extract_body_data<D>(response: Response<Bytes>) -> std::io::Result<D>
 where
-    for <'de> D: serde::de::Deserialize<'de>,
+    for<'de> D: serde::de::Deserialize<'de>,
     D: serde::de::DeserializeOwned,
 {
     let body = from_utf8(response.body()).expect("Could not parse response body as UTF8.");
@@ -48,7 +50,6 @@ where
 
     Ok(data)
 }
-
 
 /// A custom error for Warp-related stuff.
 #[derive(Debug)]

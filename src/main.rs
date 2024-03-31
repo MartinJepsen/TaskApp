@@ -1,10 +1,9 @@
 mod database;
 mod model;
 mod web;
-use database::{DbAddress, create_and_connect, create_schema};
-use web::serve;
+use database::{create_and_connect, create_schema, DbAddress};
 use std::sync::Arc;
-
+use web::serve;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -15,10 +14,10 @@ pub enum Error {
 }
 
 const PORT: u16 = 8080;
-const ROOT_DIR : &'static str = "frontend/dist";
+const ROOT_DIR: &'static str = "frontend/dist";
 
 #[tokio::main]
-async fn main() -> Result<(), Error>{
+async fn main() -> Result<(), Error> {
     env_logger::init();
     let db = create_and_connect(DbAddress::Path("db.sqlite".into())).await?;
 

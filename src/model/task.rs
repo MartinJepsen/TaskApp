@@ -1,8 +1,10 @@
+use crate::database::Database;
 use log::warn;
 use serde::Serialize;
-use sqlx::{FromRow, types::chrono::{NaiveDateTime, DateTime, Utc}};
-use crate::database::{Database};
-
+use sqlx::{
+    types::chrono::{DateTime, NaiveDateTime, Utc},
+    FromRow,
+};
 
 /// Task model.
 #[derive(Debug, Default, FromRow, Clone, PartialEq, Serialize)]
@@ -13,11 +15,10 @@ pub struct Task {
     pub creation_time: DateTime<Utc>,
 }
 
-
 #[derive(Debug, Default, PartialEq, Clone, Serialize, sqlx::Type)]
 #[sqlx(type_name = "task_status_enum")]
 #[sqlx(rename_all = "lowercase")]
-pub enum TaskStatus{
+pub enum TaskStatus {
     #[default]
     Open,
     Closed,
@@ -29,7 +30,6 @@ pub struct TaskPatch {
     pub name: Option<String>,
     pub status: Option<TaskStatus>,
 }
-
 
 /// Task model access controller.
 pub struct TaskMac;
@@ -46,7 +46,8 @@ impl TaskMac {
     ) RETURNING id, name, status, creation_time"#;
     const GET_SQL: &'static str = r"SELECT id, name, status, creation_time FROM tasks WHERE id = ?";
 
-    const UPDATE_SQL: &'static str = "UPDATE tasks SET name = ? WHERE id = ? RETURNING id, name, status, creation_time";
+    const UPDATE_SQL: &'static str =
+        "UPDATE tasks SET name = ? WHERE id = ? RETURNING id, name, status, creation_time";
     const DELETE_SQL: &'static str = "DELETE FROM tasks WHERE id = ?";
     const LIST_SQL: &'static str = "SELECT id, name, status, creation_time FROM tasks";
 
@@ -57,7 +58,7 @@ impl TaskMac {
         //     Self::TABLE_NAME,
         //     Self::COLUMNS.join(", ")
         // );
-        
+
         // let task_name = &data.name.unwrap_or_else(||{ warn!("Got empty task name. Defaulting to \"untitled\"."); "untitled".to_string()});
         let task_status = &data.status.unwrap_or(TaskStatus::Open);
 
@@ -65,15 +66,14 @@ impl TaskMac {
             .bind(&data.name)
             .bind(&task_status)
             .bind(Utc::now().naive_utc());
-            
+
         let task = response.fetch_one(db).await?;
         Ok(task)
     }
 
     /// Get a task from the database by id.
     pub async fn get(db: &Database, id: i64) -> Result<Task, crate::Error> {
-        let response = sqlx::query_as::<_, Task>(Self::GET_SQL)
-            .bind(id);
+        let response = sqlx::query_as::<_, Task>(Self::GET_SQL).bind(id);
         let task = response.fetch_one(db).await?;
         Ok(task)
     }
@@ -100,7 +100,10 @@ impl TaskMac {
         // Add SET clause
         query.push_str(&set_statements.join(", "));
         // Add WHERE clause
-        query.push_str(&format!(" WHERE id = ? RETURNING {0}", Self::COLUMNS.join(", ")));
+        query.push_str(&format!(
+            " WHERE id = ? RETURNING {0}",
+            Self::COLUMNS.join(", ")
+        ));
 
         let mut response = sqlx::query_as::<_, Task>(&query);
 
@@ -112,7 +115,7 @@ impl TaskMac {
             response = response.bind(task_status);
         }
         response = response.bind(id);
-        
+
         let task = response.fetch_one(db).await?;
         Ok(task)
     }
@@ -123,7 +126,7 @@ impl TaskMac {
         Ok(())
     }
 
-    /// List all tasks from the database.	
+    /// List all tasks from the database.
     pub async fn list(db: &Database) -> Result<Vec<Task>, crate::Error> {
         let response = sqlx::query_as::<_, Task>(Self::LIST_SQL);
         let tasks = response.fetch_all(db).await?;
@@ -131,20 +134,22 @@ impl TaskMac {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::database::{DbAddress, create_and_connect, create_schema};
+    use crate::database::{create_and_connect, create_schema, DbAddress};
     use crate::model::task::TaskStatus;
-    
+
     /// Test insertion of a new task
     #[tokio::test]
     async fn test_insert() -> Result<(), crate::Error> {
         let db = create_and_connect(DbAddress::Memory).await?;
         create_schema(&db).await?;
 
-        let task_fixture = TaskPatch { name: Some("Hello world".to_string()) , status: None};
+        let task_fixture = TaskPatch {
+            name: Some("Hello world".to_string()),
+            status: None,
+        };
 
         let task = TaskMac::insert(&db, task_fixture).await?;
         println!("{:?}", task);
@@ -153,16 +158,18 @@ mod test {
         Ok(())
     }
 
-
     /// Test retreival of a task by id
     #[tokio::test]
     async fn test_get() -> Result<(), crate::Error> {
         // # Setup
         let db = create_and_connect(DbAddress::Memory).await?;
         create_schema(&db).await?;
-        
+
         // # Fixture
-        let task_fixture = TaskPatch { name: Some("Hello world".to_string()), status: Some(TaskStatus::Open) };
+        let task_fixture = TaskPatch {
+            name: Some("Hello world".to_string()),
+            status: Some(TaskStatus::Open),
+        };
 
         // # Action
         let inserted_task = TaskMac::insert(&db, task_fixture).await?;
@@ -181,12 +188,23 @@ mod test {
         create_schema(&db).await?;
 
         // # Fixture
-        let task_fixture = TaskPatch { name: Some("Hello world".to_string()), status: Some(TaskStatus::Open) };
+        let task_fixture = TaskPatch {
+            name: Some("Hello world".to_string()),
+            status: Some(TaskStatus::Open),
+        };
         let inserted_task = TaskMac::insert(&db, task_fixture).await?;
 
         // # Action
-        let updated_task = TaskMac::update(&db, inserted_task.id, TaskPatch { name: Some("Updated".to_string()), status: None }).await?;
-        
+        let updated_task = TaskMac::update(
+            &db,
+            inserted_task.id,
+            TaskPatch {
+                name: Some("Updated".to_string()),
+                status: None,
+            },
+        )
+        .await?;
+
         // # Check
         assert_eq!(updated_task.name, "Updated");
         assert_eq!(inserted_task.id, updated_task.id);
@@ -202,12 +220,23 @@ mod test {
         create_schema(&db).await?;
 
         // # Fixture
-        let task_fixture = TaskPatch { name: Some("Hello world".to_string()), status: Some(TaskStatus::Open) };
+        let task_fixture = TaskPatch {
+            name: Some("Hello world".to_string()),
+            status: Some(TaskStatus::Open),
+        };
         let inserted_task = TaskMac::insert(&db, task_fixture).await?;
 
         // # Action
-        let updated_task = TaskMac::update(&db, inserted_task.id, TaskPatch { name: None, status: None }).await?;
-        
+        let updated_task = TaskMac::update(
+            &db,
+            inserted_task.id,
+            TaskPatch {
+                name: None,
+                status: None,
+            },
+        )
+        .await?;
+
         // # Check
         assert_eq!(updated_task, inserted_task);
         Ok(())
@@ -221,12 +250,23 @@ mod test {
         create_schema(&db).await?;
 
         // # Fixture
-        let task_fixture = TaskPatch { name: Some("Hello world".to_string()), status: Some(TaskStatus::Open) };
+        let task_fixture = TaskPatch {
+            name: Some("Hello world".to_string()),
+            status: Some(TaskStatus::Open),
+        };
         let inserted_task = TaskMac::insert(&db, task_fixture).await?;
 
         // # Action
-        let updated_task = TaskMac::update(&db, inserted_task.id, TaskPatch { name: None, status: Some(TaskStatus::Closed) }).await?;
-        
+        let updated_task = TaskMac::update(
+            &db,
+            inserted_task.id,
+            TaskPatch {
+                name: None,
+                status: Some(TaskStatus::Closed),
+            },
+        )
+        .await?;
+
         // # Check
         assert_eq!(updated_task.name, "Hello world");
         assert_eq!(inserted_task.id, updated_task.id);
@@ -243,8 +283,14 @@ mod test {
 
         // # Fixture
         let task_fixture = vec![
-            TaskPatch { name: Some("One".to_string()), status: Some(TaskStatus::Open)},
-            TaskPatch { name: Some("Two".to_string()), status: Some(TaskStatus::Closed) }
+            TaskPatch {
+                name: Some("One".to_string()),
+                status: Some(TaskStatus::Open),
+            },
+            TaskPatch {
+                name: Some("Two".to_string()),
+                status: Some(TaskStatus::Closed),
+            },
         ];
 
         // # Action

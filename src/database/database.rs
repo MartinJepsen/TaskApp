@@ -2,12 +2,11 @@ use log::info;
 use sqlx::migrate::MigrateDatabase;
 use sqlx::{sqlite::SqlitePoolOptions, Pool, Sqlite};
 
-use std::fs::{File};
+use std::fs::File;
 use std::path::Path;
 use std::time::Duration;
 
 pub type Database = Pool<Sqlite>;
-
 
 /// Address to the database.
 pub enum DbAddress {
@@ -18,7 +17,6 @@ pub enum DbAddress {
 }
 
 impl DbAddress {
-
     /// Convert the address to a string.
     pub async fn to_sqlite_string(&self) -> String {
         match self {
@@ -32,15 +30,19 @@ impl DbAddress {
 
 /// Create a new database or connect to an existing one.
 pub async fn create_and_connect(address: DbAddress) -> Result<Database, crate::Error> {
-    
     let address_str = address.to_sqlite_string().await;
     match &address {
         DbAddress::Path(path) => {
             if !Sqlite::database_exists(&path).await.unwrap_or(false) {
                 info!("Creating database at {}", &address_str);
                 match Path::new(&path).exists() {
-                    false => {File::create(&path).expect("Failed to create file database.");},
-                    true => info!("Database file already exists at {}. Connecting.", &address_str),
+                    false => {
+                        File::create(&path).expect("Failed to create file database.");
+                    }
+                    true => info!(
+                        "Database file already exists at {}. Connecting.",
+                        &address_str
+                    ),
                 };
                 match Sqlite::create_database(&address_str).await {
                     Ok(_) => info!("Database created at {}", &address_str),
@@ -51,8 +53,8 @@ pub async fn create_and_connect(address: DbAddress) -> Result<Database, crate::E
             } else {
                 info!("Database already exists at {}", &address_str);
             }
-        },
-        DbAddress::Memory => ()
+        }
+        DbAddress::Memory => (),
     };
 
     let pool = connect(address).await?;
@@ -90,11 +92,9 @@ pub async fn create_schema(db: &Database) -> Result<(), crate::Error> {
     Ok(())
 }
 
-
-
 #[cfg(test)]
 mod tests {
-    use super::{connect, DbAddress, create_and_connect, create_schema};
+    use super::{connect, create_and_connect, create_schema, DbAddress};
     use sqlx::Row;
 
     #[tokio::test]
@@ -115,7 +115,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_schema() -> Result<(), crate::Error>{
+    async fn test_schema() -> Result<(), crate::Error> {
         // # Fixture
         let db = create_and_connect(DbAddress::Memory).await?;
         let _ = create_schema(&db).await;
@@ -132,7 +132,7 @@ mod tests {
             let notnull = row.try_get::<bool, _>("notnull").unwrap();
             let pk = row.try_get::<bool, _>("pk").unwrap();
             schema.push((colname, dtype, notnull, pk))
-        };
+        }
 
         // Check schema
         assert_eq!(
@@ -141,7 +141,12 @@ mod tests {
                 ("id".to_string(), "INTEGER".to_string(), true, true),
                 ("name".to_string(), "TEXT".to_string(), true, false),
                 ("status".to_string(), "VARCHAR(5)".to_string(), true, false),
-                ("creation_time".to_string(), "INTEGER".to_string(), true, false),
+                (
+                    "creation_time".to_string(),
+                    "INTEGER".to_string(),
+                    true,
+                    false
+                ),
             ]
         );
         Ok(())

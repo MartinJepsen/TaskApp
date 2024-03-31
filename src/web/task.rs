@@ -1,17 +1,17 @@
 use crate::database::Database;
 use crate::model::TaskMac;
 
-use std::sync::Arc;
-use std::convert::Infallible;
 use serde_json::json;
+use std::convert::Infallible;
+use std::sync::Arc;
 use warp::reply::Json;
 use warp::Filter;
 
-pub fn task_rest_filters (
+pub fn task_rest_filters(
     base_path: &'static str,
     database: Arc<Database>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    let task_path = warp::path(base_path).and(warp::path("tasks"));  // /api/tasks
+    let task_path = warp::path(base_path).and(warp::path("tasks")); // /api/tasks
     let common = with_db(database.clone());
 
     // List tasks (GET /api/tasks)
@@ -32,11 +32,11 @@ async fn task_list(database: Arc<Database>) -> Result<Json, warp::Rejection> {
     Ok(warp::reply::json(&response))
 }
 
-
-pub fn with_db(database: Arc<Database>) -> impl Filter<Extract = (Arc<Database>,), Error = Infallible> + Clone {
+pub fn with_db(
+    database: Arc<Database>,
+) -> impl Filter<Extract = (Arc<Database>,), Error = Infallible> + Clone {
     warp::any().map(move || database.clone())
 }
-
 
 #[cfg(test)]
 mod test {

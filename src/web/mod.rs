@@ -61,7 +61,7 @@ pub async fn serve(root_dir: &str, port: u16, database: Arc<Database>) -> Result
 // # Error handling
 
 /// A custom error for Warp-related stuff.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WebError {
     typ: &'static str,
     #[allow(dead_code)]
@@ -87,7 +87,11 @@ impl From<crate::Error> for WebError {
 
 impl From<crate::Error> for warp::Rejection {
     fn from(other: crate::Error) -> Self {
-        WebError::rejection("crate::error", format!("{}", other))
+        let typ = match other {
+            Error::RootNotFound(_) => "rootDirNotFound",
+            Error::SqlxError(_) => "sqlError",
+        };
+        WebError::rejection(typ, format!("{}", other))
     }
 }
 
@@ -96,12 +100,12 @@ async fn handle_rejection(err: warp::Rejection) -> Result<impl warp::Reply, Infa
 
     // TODO: logging API?
 
-    let web_err = match err.find::<WebError>() {
+    let web_err: WebError = match err.find::<WebError>() {
         Some(err) => err.clone(),
         None => WebError { typ: "unknown", message: "unknown error".to_string()}
     };
 
-    let result = json!({"error": {"type": web_err.typ}});
+    let result = json!({"error": {"type": web_err.typ, "message": web_err.message}});
     let result = warp::reply::json(&result);
 
     Ok(warp::reply::with_status(

@@ -12,7 +12,7 @@ The backend is written in Rust. It uses:
 * [serde](https://github.com/serde-rs/serde)/[serde-json](https://github.com/serde-rs/json): Serialization/deserialization.
 * [warp](https://github.com/seanmonstar/warp): Web server/API.
 * [tokio](https://github.com/tokio-rs/tokio): Async runtime.
-* [log](https://github.com/rust-lang/log)/[env-logger](https://github.com/rust-cli/env_logger): Logging.
+* [log](https://github.com/rust-lang/log)/[env-logger](https://github.com/rust-cli/env_logger)/[tracing](https://github.com/tokio-rs/tracing/tree/master): Logging.
 * [thiserror](https://github.com/dtolnay/thiserror): Custom error types.
 
 ### Architecture
@@ -25,3 +25,10 @@ The backend is split into three modules.
 
 ## Frontend
 
+The frontend uses native web components in HTML/CSS with dom-native in TypeScript.
+
+It is divided into three modules:
+
+* model/task-mco: Model client object for representing a `Task` data structure.
+* ui/task-app: DOM manipulation and event handling.
+* web-client: API calls.

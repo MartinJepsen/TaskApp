@@ -8,12 +8,12 @@ use std::time::Duration;
 
 pub type Database = Pool<Sqlite>;
 
+#[allow(dead_code)]
 /// Address to the database.
 pub enum DbAddress {
     /// Address is a path.
     Path(String),
     /// Address is in-memory.
-    #[allow(dead_code)]
     Memory,
 }
 

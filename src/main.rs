@@ -2,8 +2,10 @@ mod database;
 mod model;
 mod web;
 use database::{create_and_connect, DbAddress};
+use log::{info, warn};
 use std::sync::Arc;
 use web::serve;
+use tracing_subscriber::EnvFilter;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -18,7 +20,14 @@ const ROOT_DIR: &str = "frontend/dist";
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    env_logger::init();
+    let formatter = tracing_subscriber::fmt().pretty().with_env_filter(EnvFilter::from_default_env()).finish();
+    match tracing::subscriber::set_global_default(formatter)
+    {
+        Ok(_) => info!("Tracing initialized."),
+        Err(reason) => warn!("Failed to initialize tracing: {}", reason),
+    };
+
+
     let db = create_and_connect(DbAddress::Memory).await?;
 
     // Insert some mock data

@@ -14,4 +14,6 @@ serde_json = "1.0.115"
 sqlx = { version = "0.7.4", features = ["sqlite", "runtime-tokio-rustls", "chrono"] }
 thiserror = "1.0.58"
 tokio = { version = "1.37.0", features = ["macros", "rt", "rt-multi-thread"] }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["json", "serde", "serde_json", "env-filter", "tracing-log"] }
 warp = "0.3.6"

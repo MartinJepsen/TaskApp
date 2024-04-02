@@ -2,17 +2,36 @@ use crate::database::Database;
 use crate::model::task::{TaskMac, TaskPatch};
 
 use super::json_response;
-use log::info;
+
 use serde_json::json;
 use std::convert::Infallible;
 use std::sync::Arc;
 use warp::reply::Json;
 use warp::Filter;
 
+
+
 pub fn task_rest_filters(
     base_path: &'static str,
     database: Arc<Database>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+
+    let logger = warp::log::custom(|info| {
+        let body = json!(
+            {
+                "status": info.status().as_u16(),
+                "version": format!("{:?}", info.version()),
+                "method": info.method().as_str(),
+                "path": info.path(),
+                "elapsed": info.elapsed().as_secs_f64(),
+            }
+        );
+        if let Ok(json_str) = serde_json::to_string_pretty(&body) {
+            tracing::info!("{}", json_str);
+        }
+    });
+
+
     let task_path = warp::path(base_path).and(warp::path("tasks")); // /api/tasks
     let common = with_db(database.clone());
 
@@ -52,8 +71,14 @@ pub fn task_rest_filters(
         .and(warp::path::param())
         .and_then(task_delete);
 
-    list.or(get).or(insert).or(update).or(delete)
+    list.or(get).or(insert).or(update).or(delete).with(logger)
 }
+
+
+// async fn log_api_call(info: warp::filters::trace::Info) -> Result<(), warp::Rejection> {
+
+// }
+
 
 /// List all tasks.
 async fn task_list(database: Arc<Database>) -> Result<Json, warp::Rejection> {

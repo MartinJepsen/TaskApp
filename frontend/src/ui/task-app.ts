@@ -1,4 +1,4 @@
-import { BaseHTMLElement, customElement, getChild, getChildren, html } from "dom-native";
+import { BaseHTMLElement, customElement, first, getChild, getChildren, html, OnEvent, onEvent, onHub } from "dom-native";
 import { Task, taskMco } from "../model/task-mco";
 
 // Main element
@@ -37,6 +37,30 @@ class TaskApp extends BaseHTMLElement {
         this.#taskListEl.innerHTML = "";
         this.#taskListEl.append(htmlContent);
     }
+
+    // Add event listener for the checkmark element
+    @onEvent("pointerup", "c-check")
+    onCheckTask(evt: PointerEvent & OnEvent) {
+        console.log("Click!")
+        const taskItem: TaskItem = evt.selectTarget.closest("task-item")!;
+        const status = taskItem.data.status == "Open" ? "Closed" : "Open";
+
+        taskMco.update(taskItem.data.id, { status });
+    }
+
+    // Whenever a task is updated by clicking the check field, we update the task item
+    @onHub("dataHub", "Task", "update")
+    onTaskUpdate(data: Task) {
+        const taskItem = first(this, `task-item.Task-${data.id}`) as TaskItem | undefined;
+        if (taskItem) {
+            taskItem.data = data;
+        }
+    }
+
+    @onHub("dataHub", "Task", "create")
+    onTaskCreate(data: Task) {
+        this.refresh();
+    }
 }
 
 // Input text field.
@@ -49,6 +73,15 @@ class TaskInput extends BaseHTMLElement {
         `;
         this.#inputEl = getChild(htmlContent, "input");
         this.append(htmlContent);
+    }
+
+    @onEvent("keyup", "input")
+    onInputKeyUp(evt: KeyboardEvent) {
+        if (evt.key == "Enter") {
+            const name = this.#inputEl.value;
+            taskMco.create({ name });
+            this.#inputEl.value = "";
+        }
     }
 }
 

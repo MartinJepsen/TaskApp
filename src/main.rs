@@ -19,9 +19,18 @@ const ROOT_DIR: &str = "frontend/dist";
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     env_logger::init();
-    let db = create_and_connect(DbAddress::Path("db.sqlite".into())).await?;
+    let db = create_and_connect(DbAddress::Memory).await?;
+
+    // Insert some mock data
+    model::task::TaskMac::insert(&db, model::task::TaskPatch {
+        name: Some("Mock 1".into()),
+        status: Some(model::task::TaskStatus::Open)
+    }).await?;
+    model::task::TaskMac::insert(&db, model::task::TaskPatch {
+        name: Some("Mock 2".into()),
+        status: Some(model::task::TaskStatus::Closed)
+    }).await?;
 
     serve(ROOT_DIR, PORT, Arc::new(db)).await?;
-    // create_schema(&db).await?;
     Ok(())
 }

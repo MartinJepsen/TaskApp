@@ -96,13 +96,16 @@ impl From<crate::Error> for warp::Rejection {
 }
 
 async fn handle_rejection(err: warp::Rejection) -> Result<impl warp::Reply, Infallible> {
-    error!("Error: {:?}", err);
+    // error!("Error: {:?}", err);
 
     // TODO: logging API?
 
     let web_err: WebError = match err.find::<WebError>() {
         Some(err) => err.clone(),
-        None => WebError { typ: "unknown", message: "unknown error".to_string()}
+        None => {
+            error!("Unknown error: {:?}", err);
+            WebError { typ: "unknown", message: format!("{:#?}", err)}
+        }
     };
 
     let result = json!({"error": {"type": web_err.typ, "message": web_err.message}});

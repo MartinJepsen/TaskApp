@@ -2,6 +2,7 @@ use crate::database::Database;
 use crate::model::task::{TaskMac, TaskPatch};
 
 use super::json_response;
+use log::info;
 use serde_json::json;
 use std::convert::Infallible;
 use std::sync::Arc;
@@ -56,13 +57,14 @@ pub fn task_rest_filters(
 
 /// List all tasks.
 async fn task_list(database: Arc<Database>) -> Result<Json, warp::Rejection> {
-    // FIXME: use error handling
-    let tasks = TaskMac::list(&database).await.unwrap();
+    info!("Listing tasks");
+    let tasks = TaskMac::list(&database).await?;
     json_response(tasks)
 }
 
 /// Get a task by id.
 async fn task_get(database: Arc<Database>, id: i64) -> Result<Json, warp::Rejection> {
+    info!("Getting task {id}");
     let task = TaskMac::get(&database, id).await?;
     json_response(task)
 }

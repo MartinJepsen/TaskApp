@@ -22,7 +22,7 @@ impl DbAddress {
     pub async fn to_sqlite_string(&self) -> String {
         match self {
             DbAddress::Path(path) => {
-                format!("sqlite://{}", path)
+                format!("sqlite:{}", path)
             }
             DbAddress::Memory => "sqlite::memory:".to_string(),
         }
@@ -78,6 +78,7 @@ async fn connect(address: DbAddress) -> Result<Database, crate::Error> {
 
 /// Create the database schema
 async fn create_schema(db: &Database) -> Result<(), crate::Error> {
+    info!("Creating schema.");
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS tasks (
@@ -90,6 +91,7 @@ async fn create_schema(db: &Database) -> Result<(), crate::Error> {
     )
     .execute(db)
     .await?;
+    info!("Schema created.");
     Ok(())
 }
 

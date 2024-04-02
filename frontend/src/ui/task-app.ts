@@ -69,7 +69,7 @@ class TaskInput extends BaseHTMLElement {
     #inputEl!: HTMLInputElement;
     init() {
         let htmlContent: DocumentFragment = html`
-            <input type="text" placeholder="Enter task" />
+            <input type="text" placeholder="New task" />
         `;
         this.#inputEl = getChild(htmlContent, "input");
         this.append(htmlContent);

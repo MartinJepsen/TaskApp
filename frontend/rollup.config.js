@@ -10,6 +10,7 @@ export default [
             name: "bundle",
             sourcemap: true
         },
+        watch: true,
         plugins: [
             rollup_nre(),
             rollup_tsc({

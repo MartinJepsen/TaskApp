@@ -41,7 +41,6 @@ class TaskApp extends BaseHTMLElement {
     // Add event listener for the checkmark element
     @onEvent("pointerup", "c-check")
     onCheckTask(evt: PointerEvent & OnEvent) {
-        console.log("Click!")
         const taskItem: TaskItem = evt.selectTarget.closest("task-item")!;
         const status = taskItem.data.status == "Open" ? "Closed" : "Open";
 
@@ -112,7 +111,7 @@ export class TaskItem extends BaseHTMLElement {
         let htmlContent = html`
             <c-check><c-ico name="ico-done"></c-ico></c-check>
             <div class="title">STATIC TITLE</div>
-            <c-ico name="del"></c-ico>
+            <c-ico name="ico-del"></c-ico>
         `;
 
         this.#titleEl = getChild(htmlContent, "div");

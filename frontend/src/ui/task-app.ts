@@ -40,11 +40,18 @@ class TaskApp extends BaseHTMLElement {
 
     // Add event listener for the checkmark element
     @onEvent("pointerup", "c-check")
-    onCheckTask(evt: PointerEvent & OnEvent) {
+    onClickStatus(evt: PointerEvent & OnEvent) {
         const taskItem: TaskItem = evt.selectTarget.closest("task-item")!;
         const status = taskItem.data.status == "Open" ? "Closed" : "Open";
 
         taskMco.update(taskItem.data.id, { status });
+    }
+
+    @onEvent("pointerup", 'c-ico[name="ico-del"]')
+    onClickDelete(evt: PointerEvent & OnEvent) {
+        const taskItem: TaskItem = evt.selectTarget.closest("task-item")!;
+        console.log(`Deleting ${taskItem.data.id}`);
+        taskMco.delete(taskItem.data.id);
     }
 
     // Whenever a task is updated by clicking the check field, we update the task item
@@ -58,6 +65,11 @@ class TaskApp extends BaseHTMLElement {
 
     @onHub("dataHub", "Task", "create")
     onTaskCreate(data: Task) {
+        this.refresh();
+    }
+
+    @onHub("dataHub", "Task", "delete")
+    onTaskDelete(data: Task) {
         this.refresh();
     }
 }

@@ -1,6 +1,6 @@
 import { BaseHTMLElement, customElement, html } from "dom-native";
 
-// Checkmark icon element
+// SVG icon element
 @customElement("c-ico")
 class Ico extends BaseHTMLElement {
 

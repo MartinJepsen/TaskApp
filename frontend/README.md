@@ -1,5 +1,7 @@
 # Frontend
 
+Requires [nvm](https://nodejs.org/en/download/package-manager).
+
 To run:
 
 ```shell

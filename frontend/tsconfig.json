@@ -4,20 +4,22 @@
         "module": "ESNext",
         "moduleResolution": "node",
 
+        // Strict TS mode
         "allowJs": false,
         "checkJs": false,
         "strict": true,
 
         "declaration": true,
-        // "sourcemap": false,
+        "outDir": "dist",
 
         "useDefineForClassFields": true,
         "experimentalDecorators": true,
 
-        // "esModuleInterop": true,
+        "esModuleInterop": true,
         // "skipLibCheck": true,
         // "forceConsistentCasingInFileNames": true},
+        "skipLibCheck": true
     },
-    "include": ["./src/**/*.ts"],
+    "include": ["src/**/*.ts"],
     "exclude": ["node_modules"]
 }
